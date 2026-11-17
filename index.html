@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Hybrid Mtn">
+    <title>Hybrid Mountain Tracker</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --card: #1e1e1e;
+            --primary: #bb86fc;
+            --secondary: #03dac6;
+            --text: #e0e0e0;
+            --muted: #8e8e93;
+            --ghost: #636366;
+            --danger: #cf6679;
+            --warning: #ffb74d;
+            --success: #4caf50;
+            --info-bg: #262629;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            padding-bottom: 90px;
+            padding-top: env(safe-area-inset-top);
+        }
+        
+        /* HEADER */
+        header {
+            background-color: var(--card);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid #2c2c2e;
+        }
+        .header-content {
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { margin: 0; font-size: 1.05rem; font-weight: 800; letter-spacing: -0.4px; }
+        
+        .header-controls { 
+            display: flex; 
+            gap: 8px; 
+            align-items: center; 
+            flex-shrink: 0; 
+        }
+        .progress-pill {
+            font-size: 0.75rem;
+            color: var(--secondary);
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            margin-right: 2px;
+        }
+        .control-btn {
+            background: #2c2c2e;
+            border: 1px solid #3a3a3c;
+            color: var(--text);
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .week-btn { 
+            color: var(--secondary); 
+            border: 1px solid var(--secondary); 
+            background: rgba(3, 218, 198, 0.12); 
+            white-space: nowrap;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 4px;
+            background: #2a2a2a;
+        }
+        .progress-bar {
+            height: 100%;
+            background: var(--secondary);
+            width: 0%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+
+        /* Intention Banner */
+        .intention-banner {
+            background: #222225;
+            padding: 12px 15px;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #333;
+            display: none;
+        }
+        .intention-banner.active { display: block; }
+        .intention-title { font-weight: 700; margin-bottom: 3px; display: block; color: #fff; }
+        .intention-text { color: var(--muted); line-height: 1.35; }
+        .week-deload { border-left: 4px solid var(--warning); }
+        .week-intense { border-left: 4px solid var(--danger); }
+        .week-normal { border-left: 4px solid var(--primary); }
+
+        /* Day Selector */
+        .day-selector {
+            display: flex;
+            overflow-x: auto;
+            background: var(--bg);
+            padding: 12px 10px;
+            gap: 8px;
+            border-bottom: 1px solid #222;
+            scrollbar-width: none;
+        }
+        .day-selector::-webkit-scrollbar { display: none; }
+        .day-chip {
+            background: var(--card);
+            padding: 8px 14px;
+            border-radius: 20px;
+            white-space: nowrap;
+            border: 1px solid #333;
+            color: var(--muted);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .day-chip.active {
+            background: var(--primary);
+            color: #000;
+            font-weight: 700;
+            border-color: var(--primary);
+        }
+
+        .container { padding: 12px 14px; max-width: 600px; margin: 0 auto; }
+
+        .day-meta-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            background: #1a1a1c;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #2a2a2d;
+        }
+        .last-performed {
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+        .focus-tag {
+            font-size: 0.72rem;
+            color: var(--primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Archive / Completion Banner */
+        .complete-banner {
+            display: none;
+            background: rgba(76, 175, 80, 0.15);
+            border: 1px solid var(--success);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .complete-banner.show { display: block; }
+        .complete-banner-title {
+            color: #81c784;
+            font-weight: 700;
+            font-size: 0.92rem;
+            margin-bottom: 4px;
+        }
+        .complete-banner-sub {
+            color: var(--muted);
+            font-size: 0.78rem;
+            margin-bottom: 10px;
+            line-height: 1.35;
+        }
+        .reset-now-btn {
+            background: var(--success);
+            color: #000;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        /* Exercise Card */
+        .exercise-card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+            border: 1px solid #2a2a2d;
+            transition: opacity 0.3s ease;
+        }
+        .exercise-card.fully-done { opacity: 0.55; }
+
+        .ex-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .ex-title-group { display: flex; align-items: center; width: 88%; gap: 8px; }
+        .ex-title { font-weight: 700; font-size: 1.02rem; color: #fff; line-height: 1.3; }
+        .ex-edit { font-size: 1rem; cursor: pointer; opacity: 0.6; padding: 2px 4px; }
+        
+        .info-btn {
+            background: #2c2c2e;
+            border: 1px solid var(--muted);
+            color: var(--text);
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .instruction-panel {
+            display: none;
+            background: var(--info-bg);
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 0.84rem;
+            color: #d1d1d6;
+            line-height: 1.45;
+            border-left: 3px solid var(--secondary);
+        }
+
+        .notes-section {
+            background: #252528;
+            padding: 7px 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border: 1px solid #303034;
+        }
+        .notes-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-size: 0.85rem;
+            font-family: inherit;
+            outline: none;
+        }
+        .notes-input::placeholder { color: var(--ghost); font-style: italic; }
+
+        .target-sub {
+            font-size: 0.76rem;
+            color: var(--secondary);
+            margin-bottom: 10px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+        }
+        .prev-note-hint {
+            color: var(--muted);
+            font-weight: 400;
+            font-style: italic;
+        }
+
+        /* Set Rows with Ghost History Column */
+        .set-row {
+            display: grid;
+            grid-template-columns: 0.45fr 1.25fr 0.9fr 0.9fr 0.8fr 0.55fr;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .set-header {
+            font-size: 0.65rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            font-weight: 600;
+        }
+        .set-num {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--muted);
+        }
+        .prev-badge {
+            font-size: 0.73rem;
+            color: var(--ghost);
+            background: #18181a;
+            padding: 7px 4px;
+            border-radius: 5px;
+            border: 1px dashed #2c2c2e;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-variant-numeric: tabular-nums;
+        }
+        
+        input.set-input {
+            width: 100%;
+            background: #2c2c2e;
+            border: 1px solid #3a3a3c;
+            padding: 8px 4px;
+            border-radius: 6px;
+            color: #ffffff;
+            text-align: center;
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            -moz-appearance: textfield;
+            outline: none;
+        }
+        input.set-input:focus {
+            border-color: var(--primary);
+            background: #323236;
+        }
+        /* Greyed-out ghost numbers inside input boxes */
+        input.set-input::placeholder {
+            color: #6c6c70;
+            font-weight: 400;
+            opacity: 1;
+        }
+
+        .check-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #48484a;
+            background: transparent;
+            color: #8e8e93;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin: 0 auto;
+            font-size: 0.9rem;
+            transition: all 0.15s;
+        }
+        .check-btn.completed {
+            background: var(--secondary);
+            border-color: var(--secondary);
+            color: #000;
+            font-weight: 800;
+        }
+
+        .archive-footer-btn {
+            width: 100%;
+            background: #262629;
+            color: var(--secondary);
+            border: 1px solid var(--secondary);
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 6px;
+            margin-bottom: 10px;
+        }
+
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.88);
+            z-index: 2000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .modal-content {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 20px;
+            max-width: 480px;
+            margin: 40px auto;
+            border: 1px solid #333;
+        }
+        .close-modal { float: right; font-size: 1.5rem; cursor: pointer; color: var(--muted); }
+        .week-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .week-option {
+            background: #2c2c2e;
+            padding: 14px 5px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .week-option.active-week {
+            border-color: var(--secondary);
+            background: rgba(3, 218, 198, 0.12);
+            color: var(--secondary);
+        }
+        .week-desc { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
+
+        /* Timer Overlay */
+        #timer-overlay {
+            position: fixed;
+            bottom: 0; left: 0; width: 100%;
+            background: #18181b;
+            padding: 16px 20px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            border-top: 2px solid var(--primary);
+            z-index: 3000;
+            padding-bottom: calc(16px + env(safe-area-inset-bottom));
+            box-shadow: 0 -6px 24px rgba(0,0,0,0.6);
+        }
+        #timer-display { font-size: 3.2rem; font-weight: 800; font-variant-numeric: tabular-nums; margin: 4px 0; }
+        .timer-controls { display: flex; gap: 12px; margin-top: 8px; }
+        .timer-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+        .stop-btn { background: var(--danger); color: white; }
+        .add-btn { background: #2c2c2e; color: white; border: 1px solid #444; }
+
+        .data-controls {
+            margin-top: 24px;
+            text-align: center;
+            padding-bottom: 40px;
+            border-top: 1px solid #222;
+            padding-top: 20px;
+        }
+        .data-btn {
+            background: #262629;
+            color: var(--muted);
+            border: 1px solid #444;
+            padding: 9px 16px;
+            margin: 4px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-content">
+        <h1>Hybrid Mountain</h1>
+        <div class="header-controls">
+            <span class="progress-pill" id="progressText">0/0 (0%)</span>
+            <button class="control-btn" onclick="openModal('principlesModal')">Rules</button>
+            <button class="control-btn week-btn" onclick="openModal('weekModal')" id="weekBtn">Week 1</button>
+        </div>
+    </div>
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+</header>
+
+<div id="intentionBanner" class="intention-banner">
+    <span class="intention-title" id="intentionTitle"></span>
+    <span class="intention-text" id="intentionText"></span>
+</div>
+
+<div class="day-selector" id="daySelector"></div>
+
+<div class="container">
+    <div class="day-meta-bar">
+        <span class="focus-tag" id="dayFocusTag">Ski Quad & Eccentric</span>
+        <span class="last-performed" id="lastPerformedDate">No prior session</span>
+    </div>
+
+    <!-- Auto-Archive Notification Banner -->
+    <div class="complete-banner" id="completeBanner">
+        <div class="complete-banner-title">🎉 Routine Complete & Archived!</div>
+        <div class="complete-banner-sub">
+            Your numbers are saved to history. Next time you open this routine, a fresh session will start with today's weights greyed out for reference.
+        </div>
+        <button class="reset-now-btn" onclick="resetDayForNextWeek(appData.currentDay)">🔄 Start Fresh Session Now (Preview Ghost Inputs)</button>
+    </div>
+
+    <div id="workoutContainer"></div>
+
+    <button class="archive-footer-btn" onclick="manualArchiveAndReset()">
+        ✓ Finish & Archive Workout for Next Week
+    </button>
+</div>
+
+<div class="data-controls">
+    <button class="data-btn" onclick="exportData()">⬇️ Backup JSON</button>
+    <button class="data-btn" onclick="document.getElementById('importFile').click()">⬆️ Restore JSON</button>
+    <input type="file" id="importFile" style="display:none" onchange="importData(this)">
+    <p style="font-size: 0.7rem; color: #555; margin-top: 10px;">
+        Hybrid Mountain v6.0 • Auto-Archives on Completion • LocalStorage Enabled
+    </p>
+</div>
+
+<!-- Rest Timer Overlay -->
+<div id="timer-overlay">
+    <div style="color:var(--muted); font-size: 0.8rem; text-transform:uppercase; letter-spacing:1px;">Rest Timer</div>
+    <div id="timer-display">00:00</div>
+    <div class="timer-controls">
+        <button class="timer-btn add-btn" onclick="adjustTimer(-30)">-30s</button>
+        <button class="timer-btn add-btn" onclick="adjustTimer(30)">+30s</button>
+        <button class="timer-btn stop-btn" onclick="stopTimer()">Dismiss</button>
+    </div>
+</div>
+
+<!-- Program Principles Modal -->
+<div id="principlesModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal('principlesModal')">&times;</span>
+        <h2 style="margin-top:0;">Hybrid Mountain Rules</h2>
+        <ul style="line-height: 1.55; color: var(--text); font-size: 0.9rem; padding-left: 20px;">
+            <li><strong>Boxing Integration:</strong> Leave at least 6–8 hours (or separate days) between Title HIIT Boxing and heavy Upper/Lower lifting when possible.</li>
+            <li><strong>Compound Lifts:</strong> Stop with 1–2 Reps in Reserve (RPE 8–9) to build mass without frying your CNS.</li>
+            <li><strong>Isolation & Machine Lifts:</strong> Push the final set to true muscular failure (RPE 10).</li>
+            <li><strong>Ski Eccentrics:</strong> Lower every weight for a controlled 2–4 seconds; never bounce out of the bottom of squats or calf raises.</li>
+            <li><strong>Auto-Archive:</strong> Completing all sets archives your numbers. Your next session automatically clears the boxes while showing last week's numbers in grey.</li>
+        </ul>
+    </div>
+</div>
+
+<!-- Week Selector Modal -->
+<div id="weekModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal('weekModal')">&times;</span>
+        <h2 style="margin-top:0;">8-Week Macro-Cycle</h2>
+        <p style="font-size:0.82rem; color:var(--muted); margin-top:-5px;">
+            Switching weeks automatically resets completed workouts and loads your previous numbers as greyed-out reference text.
+        </p>
+        <div class="week-grid" id="weekGrid"></div>
+        <div style="margin-top:18px; font-size:0.8rem; color:var(--muted); border-top:1px solid #333; padding-top:12px; line-height:1.5;">
+            <strong>Weeks 1–4 (Accumulation):</strong> Master eccentric control, hit top of rep ranges.<br>
+            <strong>Week 5 (Deload):</strong> Drop 1 set per exercise, keep RPE at 6–7 for joint/CNS recovery.<br>
+            <strong>Weeks 6–8 (Intensification):</strong> Progressive overload on compounds + drop sets on machines.
+        </div>
+    </div>
+</div>
+
+<script>
+    const defaultProgram = {
+        currentWeek: 1,
+        days: [
+            { 
+                id: 'd1', 
+                name: 'Lift 1: Lower (Ski)', 
+                focus: 'Quad Eccentrics & Edge Control',
+                lastDate: null,
+                pendingReset: false,
+                exercises: [
+                    { 
+                        name: 'Paused Hack Squat (or Barbell Squat)', sets: 3, reps: '6-8', rest: 180, notes: '',
+                        instructions: "<b>Setup:</b> Shoulder-width stance, back braced.<br><b>Ski Cue:</b> Lower for 3 full seconds and hold a <b>2-second pause</b> at the bottom to mimic downhill tuck tension and eliminate bounce."
+                    },
+                    { 
+                        name: 'Romanian Deadlift (RDL)', sets: 3, reps: '8-10', rest: 180, notes: '',
+                        instructions: "<b>Setup:</b> Soft knee bend, bar/DBs against thighs.<br><b>Action:</b> Hinge hips back until mid-shin (3s lowering). Builds posterior chain armor for high-speed stability."
+                    },
+                    { 
+                        name: 'DB Cossack / Lateral Lunge', sets: 2, reps: '10-12', rest: 120, notes: 'Per side',
+                        instructions: "<b>Action:</b> Step wide laterally, sitting deep into one hip while keeping the opposite leg straight. Trains frontal-plane knee stability and ski edge control."
+                    },
+                    { 
+                        name: 'Seated Leg Curl', sets: 3, reps: '12-15', rest: 90, notes: '',
+                        instructions: "<b>Setup:</b> Lock lap pad tight against thighs.<br><b>Action:</b> Lean torso slightly forward to stretch hamstrings at long length. Essential for ACL protection."
+                    },
+                    { 
+                        name: 'Wall Sit + Standing Calf Raise Superset', sets: 2, reps: '45s / 15', rest: 90, notes: '45-60s hold + 12-15 reps',
+                        instructions: "<b>A) Isometric Wall Sit:</b> Hold parallel for 45-60s to build quad lactate tolerance.<br><b>B) Calf Raise:</b> Immediately perform 12-15 reps with a 2-second pause at the bottom stretch."
+                    }
+                ]
+            },
+            { 
+                id: 'd2', 
+                name: 'Lift 2: Upper (Pull)', 
+                focus: 'Hypertrophy & Boxing Posture Balance',
+                lastDate: null,
+                pendingReset: false,
+                exercises: [
+                    { 
+                        name: 'Incline Dumbbell Press (30°)', sets: 3, reps: '6-8', rest: 180, notes: '',
+                        instructions: "<b>Setup:</b> 30° bench, retract shoulder blades.<br><b>Action:</b> Tuck elbows at 45° and lower to a deep pec stretch. Rebuilds pressing mass while sparing front delts after boxing."
+                    },
+                    { 
+                        name: 'Chest-Supported Row', sets: 3, reps: '8-10', rest: 120, notes: '',
+                        instructions: "<b>Setup:</b> Chest firmly on pad.<br><b>Action:</b> Let shoulders protract at bottom, then drive elbows back and squeeze scapulae. Zero lower-back fatigue."
+                    },
+                    { 
+                        name: 'Neutral-Grip Lat Pulldown', sets: 3, reps: '8-10', rest: 120, notes: '',
+                        instructions: "<b>Action:</b> Drive elbows <b>down</b> toward hips. Control the 3-second return all the way into a full overhead lat stretch."
+                    },
+                    { 
+                        name: 'Reverse Pec Deck (Rear Delts)', sets: 3, reps: '15-20', rest: 60, notes: '',
+                        instructions: "<b>Action:</b> Sweep arms out wide leading with pinkies. Crucial for counteracting forward shoulder rounding from heavy bag rounds."
+                    },
+                    { 
+                        name: 'Bayesian Curl + Overhead Tri Ext', sets: 2, reps: '12-15', rest: 90, notes: 'Superset',
+                        instructions: "<b>A) Bayesian Cable Curl:</b> Face away from cable with arm behind torso for peak stretch.<br><b>B) Overhead Cable Extension:</b> Elbows high, deep triceps stretch behind head."
+                    }
+                ]
+            },
+            { 
+                id: 'd3', 
+                name: 'Lift 3: Full Body', 
+                focus: 'Unilateral Power, Braking & Core',
+                lastDate: null,
+                pendingReset: false,
+                exercises: [
+                    { 
+                        name: 'Single-Leg Press (or Split Squat)', sets: 3, reps: '8-10', rest: 120, notes: 'Per leg',
+                        instructions: "<b>Action:</b> Lower deep on one leg without hip rotation. Fixes left/right strength asymmetries so both legs carve equally hard."
+                    },
+                    { 
+                        name: 'Weighted Pull-Up (or 1-Arm Cable Row)', sets: 3, reps: '8-10', rest: 150, notes: '',
+                        instructions: "<b>Action:</b> Initiate by depressing shoulder blades, pull chest to bar (or row to hip), and lower under a strict 3-second count."
+                    },
+                    { 
+                        name: 'Slow-Eccentric Leg Extension', sets: 3, reps: '12-15', rest: 90, notes: '4s lowering + Drop set last',
+                        instructions: "<b>Ski Cue:</b> Kick to full lockout, pause 1s, and take a full <b>4 seconds</b> to lower. Builds patellar tendon resilience and downhill braking stamina."
+                    },
+                    { 
+                        name: 'Seated Cable Flye + Cable Lateral Raise', sets: 2, reps: '12-15', rest: 90, notes: 'Superset',
+                        instructions: "<b>A) Cable Flye:</b> Deep chest stretch, bring wrists together.<br><b>B) Lateral Raise:</b> Pulley at wrist height, sweep arm out in the scapular plane."
+                    },
+                    { 
+                        name: 'Cable Pallof Press + Cable Crunch', sets: 2, reps: '12-15', rest: 60, notes: 'Core Superset',
+                        instructions: "<b>A) Pallof Press:</b> Stand sideways to cable, press out from sternum and resist rotation (mogul stability).<br><b>B) Cable Crunch:</b> Kneel and curl ribcage toward pelvis."
+                    }
+                ]
+            },
+            { 
+                id: 'd4', 
+                name: 'Boxing HIIT Log', 
+                focus: '2-3x Weekly Conditioning & Bag Work',
+                lastDate: null,
+                pendingReset: false,
+                exercises: [
+                    { 
+                        name: 'Title HIIT Boxing — Session 1', sets: 1, reps: '45-60m', rest: 60, notes: 'Log rounds in LBS, duration in REPS',
+                        instructions: "<b>Tracking Tip:</b> Enter number of rounds (e.g. 8 or 12) in the <b>LBS</b> box, minutes (e.g. 45) in <b>REPS</b>, and class difficulty (1-10) in <b>RPE</b>."
+                    },
+                    { 
+                        name: 'Title HIIT Boxing — Session 2', sets: 1, reps: '45-60m', rest: 60, notes: '',
+                        instructions: "<b>Recovery Cue:</b> Focus on snapping punches back to guard and relaxing shoulders between combos to save upper-body recovery."
+                    },
+                    { 
+                        name: 'Title HIIT Boxing — Session 3 (Optional)', sets: 1, reps: '45-60m', rest: 60, notes: '',
+                        instructions: "<b>Load Management:</b> If legs feel heavy before a weekend ski trip, dial back jump-squat/burpee burnout intervals during class."
+                    }
+                ]
+            }
+        ]
+    };
+
+    const weekData = {
+        1: { type: 'Accumulation', css: 'week-normal', title: 'Week 1: Accumulation & Baseline', text: 'Establish baseline weights alongside boxing. Prioritize 3-second eccentrics and leave 1–2 reps in reserve.' },
+        2: { type: 'Accumulation', css: 'week-normal', title: 'Week 2: Accumulation', text: 'Beat last week’s greyed-out reference numbers by 1–2 reps or 2.5–5 lbs while maintaining strict form.' },
+        3: { type: 'Accumulation', css: 'week-normal', title: 'Week 3: Accumulation', text: 'Push compounds to RPE 8.5–9 and machine isolations to RPE 10 on the final set.' },
+        4: { type: 'Accumulation', css: 'week-normal', title: 'Week 4: Peak Accumulation', text: 'Final hard building week before deload. Maximize tension in the stretched position.' },
+        5: { type: 'Deload', css: 'week-deload', title: '⚡ Week 5: Deload & Joint Recovery', text: 'Perform 1 fewer set per exercise and stop 3–4 reps shy of failure (RPE 6–7) to shed boxing + lifting fatigue.' },
+        6: { type: 'Intensification', css: 'week-intense', title: '🔥 Week 6: Intensification & Ski Peak', text: 'Increase load on compounds, push isolations to failure, and utilize drop sets on leg extensions.' },
+        7: { type: 'Intensification', css: 'week-intense', title: '🔥 Week 7: Intensification', text: 'High effort on every working set. Keep rest periods strict.' },
+        8: { type: 'Intensification', css: 'week-intense', title: '🔥 Week 8: Peak Week', text: 'Final week of the cycle. Test your top-set strength before resetting or transitioning to in-season maintenance.' }
+    };
+
+    const STORAGE_KEY = 'hybridMountainTrackerData_v1';
+
+    let appData = {
+        currentDay: 'd1',
+        program: JSON.parse(JSON.stringify(defaultProgram)),
+        archived: {}, // Keyed by exercise name: { date, week, note, sets: { 1: {weight, reps, rpe}, ... } }
+        logs: {}      // Active session inputs keyed by `${dayId}-${exIndex}-${setNum}`
+    };
+
+    // Load saved data from LocalStorage
+    const savedRaw = localStorage.getItem(STORAGE_KEY);
+    if (savedRaw) {
+        try {
+            const loaded = JSON.parse(savedRaw);
+            appData = { ...appData, ...loaded };
+            if (!appData.archived) appData.archived = {};
+            if (!appData.logs) appData.logs = {};
+            if (!appData.program || !appData.program.days) {
+                appData.program = JSON.parse(JSON.stringify(defaultProgram));
+            }
+        } catch (e) {
+            console.error('Error loading saved data', e);
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    }
+
+    // DOM References
+    const daySelector = document.getElementById('daySelector');
+    const container = document.getElementById('workoutContainer');
+    const weekBtn = document.getElementById('weekBtn');
+    const intentionBanner = document.getElementById('intentionBanner');
+    const lastDateEl = document.getElementById('lastPerformedDate');
+    const dayFocusTag = document.getElementById('dayFocusTag');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const completeBanner = document.getElementById('completeBanner');
+
+    function init() {
+        // If current day was completed in a prior session and marked pendingReset, auto-reset it on fresh app load
+        const currentDayObj = appData.program.days.find(d => d.id === appData.currentDay);
+        if (currentDayObj && currentDayObj.pendingReset) {
+            const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            if (currentDayObj.lastDate && currentDayObj.lastDate !== todayStr) {
+                clearDayActiveLogs(appData.currentDay);
+            }
+        }
+        renderWeekSelector();
+        updateWeekDisplay();
+        renderDays();
+        renderWorkout();
+        updateProgress();
+    }
+
+    function updateWeekDisplay() {
+        const wk = appData.program.currentWeek || 1;
+        const info = weekData[wk];
+        weekBtn.innerText = `Week ${wk}`;
+        intentionBanner.className = `intention-banner active ${info.css}`;
+        document.getElementById('intentionTitle').innerText = info.title;
+        document.getElementById('intentionText').innerText = info.text;
+    }
+
+    function renderDays() {
+        daySelector.innerHTML = '';
+        appData.program.days.forEach(day => {
+            const chip = document.createElement('div');
+            chip.className = `day-chip ${appData.currentDay === day.id ? 'active' : ''}`;
+            chip.innerText = day.name;
+            chip.onclick = () => {
+                // If leaving a completed day that has pendingReset, clear its inputs so it's fresh next time!
+                const prevDay = appData.program.days.find(d => d.id === appData.currentDay);
+                if (prevDay && prevDay.pendingReset && prevDay.id !== day.id) {
+                    clearDayActiveLogs(prevDay.id);
+                }
+                // Also if clicking into a day that had pendingReset, ensure it's cleared for the new session
+                if (day.pendingReset && appData.currentDay !== day.id) {
+                    clearDayActiveLogs(day.id);
+                }
+                appData.currentDay = day.id;
+                renderDays();
+                renderWorkout();
+                updateProgress();
+                saveData();
+            };
+            daySelector.appendChild(chip);
+        });
+    }
+
+    function renderWorkout() {
+        container.innerHTML = '';
+        const day = appData.program.days.find(d => d.id === appData.currentDay);
+        
+        dayFocusTag.innerText = day.focus || '';
+        lastDateEl.innerText = day.lastDate ? `Last archived: ${day.lastDate}` : "No prior session";
+        completeBanner.className = day.pendingReset ? 'complete-banner show' : 'complete-banner';
+
+        day.exercises.forEach((ex, exIndex) => {
+            const card = document.createElement('div');
+            card.className = 'exercise-card';
+            card.id = `card-${exIndex}`;
+            
+            let setsDone = 0;
+            for (let i = 1; i <= ex.sets; i++) {
+                if (appData.logs[`${appData.currentDay}-${exIndex}-${i}`]?.done) setsDone++;
+            }
+            if (setsDone === ex.sets) card.classList.add('fully-done');
+
+            const arch = appData.archived[ex.name] || null;
+            const archMeta = arch 
+                ? `Last: ${arch.date} (Wk ${arch.week || 1})`
+                : `Target: ${ex.sets} sets × ${ex.reps}`;
+            
+            const prevNoteText = (arch && arch.note) ? `Prev note: "${arch.note}"` : '';
+
+            let setsHtml = `
+                <div class="set-row set-header">
+                    <div>SET</div>
+                    <div>PREVIOUS</div>
+                    <div>LBS</div>
+                    <div>REPS</div>
+                    <div>RPE</div>
+                    <div>✓</div>
+                </div>
+            `;
+
+            for (let i = 1; i <= ex.sets; i++) {
+                const setId = `${appData.currentDay}-${exIndex}-${i}`;
+                const savedSet = appData.logs[setId] || {};
+                const prevSet = (arch && arch.sets && arch.sets[i]) ? arch.sets[i] : null;
+
+                // Greyed-out previous badge & input placeholders
+                const prevBadgeStr = prevSet && (prevSet.weight || prevSet.reps)
+                    ? `${prevSet.weight || '-'}×${prevSet.reps || '-'}${prevSet.rpe ? ' @' + prevSet.rpe : ''}`
+                    : '—';
+                
+                const weightPlaceholder = prevSet && prevSet.weight ? prevSet.weight : '-';
+                const repsPlaceholder = prevSet && prevSet.reps ? prevSet.reps : ex.reps;
+                const rpePlaceholder = prevSet && prevSet.rpe ? prevSet.rpe : '8-9';
+
+                setsHtml += `
+                    <div class="set-row">
+                        <div class="set-num">${i}</div>
+                        <div class="prev-badge" title="Previous session Set ${i}">${prevBadgeStr}</div>
+                        <input class="set-input" type="number" step="any" inputmode="decimal"
+                               placeholder="${weightPlaceholder}" 
+                               value="${savedSet.weight !== undefined ? savedSet.weight : ''}" 
+                               onchange="updateLog('${setId}', 'weight', this.value)">
+                        <input class="set-input" type="number" step="any" inputmode="decimal"
+                               placeholder="${repsPlaceholder}" 
+                               value="${savedSet.reps !== undefined ? savedSet.reps : ''}" 
+                               onchange="updateLog('${setId}', 'reps', this.value)">
+                        <input class="set-input" type="number" step="any" inputmode="decimal"
+                               placeholder="${rpePlaceholder}" 
+                               value="${savedSet.rpe !== undefined ? savedSet.rpe : ''}" 
+                               onchange="updateLog('${setId}', 'rpe', this.value)">
+                        <button class="check-btn ${savedSet.done ? 'completed' : ''}" 
+                                onclick="toggleSet('${setId}', ${ex.rest}, this, ${exIndex})">✓</button>
+                    </div>
+                `;
+            }
+
+            const instructionsHtml = ex.instructions 
+                ? `<div class="instruction-panel" id="info-${exIndex}">${ex.instructions}</div>` 
+                : '';
+
+            const notePlaceholder = (arch && arch.note) 
+                ? `Last note: ${arch.note} (Tap to add new note...)` 
+                : 'Notes (Seat setting, machine brand, ski leg feel...)';
+
+            card.innerHTML = `
+                <div class="ex-header">
+                    <div class="ex-title-group">
+                        <div class="ex-title">${ex.name}</div>
+                        <button class="info-btn" onclick="toggleInstruction(${exIndex})">i</button>
+                    </div>
+                    <div class="ex-edit" onclick="editExercise(${exIndex})" title="Swap/Rename Exercise">✏️</div>
+                </div>
+                ${instructionsHtml}
+                <div class="notes-section">
+                    <input class="notes-input" placeholder="${notePlaceholder.replace(/"/g, '&quot;')}" 
+                           value="${(ex.notes || '').replace(/"/g, '&quot;')}" 
+                           onchange="updateNote(${exIndex}, this.value)">
+                </div>
+                <div class="target-sub">
+                    <span>${archMeta}</span>
+                    <span class="prev-note-hint">${prevNoteText}</span>
+                </div>
+                ${setsHtml}
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function toggleInstruction(idx) {
+        const panel = document.getElementById(`info-${idx}`);
+        if (panel) {
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        }
+    }
+
+    function updateLog(setId, field, value) {
+        if (!appData.logs[setId]) appData.logs[setId] = {};
+        appData.logs[setId][field] = value;
+        saveData();
+    }
+
+    function toggleSet(setId, restTime, btn, exIndex) {
+        if (!appData.logs[setId]) appData.logs[setId] = {};
+        const isDone = !appData.logs[setId].done;
+        appData.logs[setId].done = isDone;
+        
+        if (isDone) {
+            btn.classList.add('completed');
+            startTimer(restTime);
+        } else {
+            btn.classList.remove('completed');
+        }
+        
+        checkExerciseCompletion(exIndex);
+        updateProgress(true);
+        saveData();
+    }
+
+    function checkExerciseCompletion(exIndex) {
+        const day = appData.program.days.find(d => d.id === appData.currentDay);
+        const ex = day.exercises[exIndex];
+        let setsDone = 0;
+        for (let i = 1; i <= ex.sets; i++) {
+            if (appData.logs[`${appData.currentDay}-${exIndex}-${i}`]?.done) setsDone++;
+        }
+        const card = document.getElementById(`card-${exIndex}`);
+        if (card) {
+            if (setsDone === ex.sets) card.classList.add('fully-done');
+            else card.classList.remove('fully-done');
+        }
+    }
+
+    function updateProgress(triggeredByCheck = false) {
+        const day = appData.program.days.find(d => d.id === appData.currentDay);
+        let totalSets = 0;
+        let completedSets = 0;
+
+        day.exercises.forEach((ex, exIndex) => {
+            totalSets += ex.sets;
+            for (let i = 1; i <= ex.sets; i++) {
+                const setId = `${appData.currentDay}-${exIndex}-${i}`;
+                if (appData.logs[setId]?.done) completedSets++;
+            }
+        });
+
+        const pct = totalSets === 0 ? 0 : Math.round((completedSets / totalSets) * 100);
+        progressBar.style.width = `${pct}%`;
+        progressText.innerText = `${completedSets}/${totalSets} (${pct}%)`;
+        
+        if (pct === 100 && totalSets > 0) {
+            progressBar.style.backgroundColor = 'var(--success)';
+            progressText.style.color = 'var(--success)';
+            if (triggeredByCheck) {
+                // Automatically snapshot workout to archive when 100% is reached!
+                archiveDaySnapshot(day.id);
+                day.pendingReset = true;
+                completeBanner.className = 'complete-banner show';
+                lastDateEl.innerText = `Last archived: ${day.lastDate}`;
+                saveData();
+            }
+        } else {
+            progressBar.style.backgroundColor = 'var(--secondary)';
+            progressText.style.color = 'var(--secondary)';
+            if (triggeredByCheck && day.pendingReset) {
+                day.pendingReset = false;
+                completeBanner.className = 'complete-banner';
+                saveData();
+            }
+        }
+    }
+
+    // Snapshots the current day's inputs into appData.archived[ex.name]
+    function archiveDaySnapshot(dayId) {
+        const day = appData.program.days.find(d => d.id === dayId);
+        if (!day) return;
+        const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        day.lastDate = today;
+
+        day.exercises.forEach((ex, exIndex) => {
+            const existingArch = appData.archived[ex.name] || { sets: {} };
+            const newSets = { ...(existingArch.sets || {}) };
+
+            for (let i = 1; i <= ex.sets; i++) {
+                const setId = `${dayId}-${exIndex}-${i}`;
+                const currentSet = appData.logs[setId] || {};
+                const prevSet = existingArch.sets ? existingArch.sets[i] : null;
+
+                // Use new typed value if provided; otherwise if the user checked the box without re-typing,
+                // carry forward the greyed-out placeholder value they matched!
+                const finalWeight = (currentSet.weight !== undefined && currentSet.weight !== '')
+                    ? currentSet.weight
+                    : (currentSet.done && prevSet && prevSet.weight ? prevSet.weight : (prevSet ? prevSet.weight : ''));
+                
+                const finalReps = (currentSet.reps !== undefined && currentSet.reps !== '')
+                    ? currentSet.reps
+                    : (currentSet.done && prevSet && prevSet.reps ? prevSet.reps : (prevSet ? prevSet.reps : ''));
+
+                const finalRpe = (currentSet.rpe !== undefined && currentSet.rpe !== '')
+                    ? currentSet.rpe
+                    : (currentSet.done && prevSet && prevSet.rpe ? prevSet.rpe : (prevSet ? prevSet.rpe : ''));
+
+                if (finalWeight !== '' || finalReps !== '' || finalRpe !== '') {
+                    newSets[i] = {
+                        weight: finalWeight,
+                        reps: finalReps,
+                        rpe: finalRpe
+                    };
+                }
+            }
+
+            appData.archived[ex.name] = {
+                date: today,
+                week: appData.program.currentWeek || 1,
+                note: ex.notes && ex.notes.trim() !== '' ? ex.notes.trim() : (existingArch.note || ''),
+                sets: newSets
+            };
+        });
+    }
+
+    // Clears the active input fields for a day after archiving so next week's view is fresh & greyed-out
+    function clearDayActiveLogs(dayId) {
+        const day = appData.program.days.find(d => d.id === dayId);
+        if (!day) return;
+        day.exercises.forEach((ex, exIndex) => {
+            for (let i = 1; i <= ex.sets; i++) {
+                delete appData.logs[`${dayId}-${exIndex}-${i}`];
+            }
+            // Clear active note box so previous note becomes greyed-out placeholder
+            ex.notes = '';
+        });
+        day.pendingReset = false;
+        saveData();
+    }
+
+    // Triggered by the "Start Fresh Session Now" button in the 100% completion banner
+    function resetDayForNextWeek(dayId) {
+        archiveDaySnapshot(dayId);
+        clearDayActiveLogs(dayId);
+        stopTimer();
+        renderWorkout();
+        updateProgress();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Triggered by the bottom "Finish & Archive Workout" button (useful if finishing early)
+    function manualArchiveAndReset() {
+        archiveDaySnapshot(appData.currentDay);
+        clearDayActiveLogs(appData.currentDay);
+        stopTimer();
+        renderWorkout();
+        updateProgress();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updateNote(exIndex, value) {
+        const day = appData.program.days.find(d => d.id === appData.currentDay);
+        day.exercises[exIndex].notes = value;
+        saveData();
+    }
+
+    function editExercise(index) {
+        const day = appData.program.days.find(d => d.id === appData.currentDay);
+        const newName = prompt("Swap / Rename Exercise:", day.exercises[index].name);
+        if (newName && newName.trim() !== '' && newName !== day.exercises[index].name) {
+            day.exercises[index].name = newName.trim();
+            saveData();
+            renderWorkout();
+        }
+    }
+
+    function openModal(id) { document.getElementById(id).style.display = 'block'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    window.onclick = function(event) {
+        if (event.target.className === 'modal') event.target.style.display = "none";
+    };
+
+    function renderWeekSelector() {
+        const grid = document.getElementById('weekGrid');
+        grid.innerHTML = '';
+        for (let i = 1; i <= 8; i++) {
+            const div = document.createElement('div');
+            div.className = `week-option ${appData.program.currentWeek === i ? 'active-week' : ''}`;
+            div.innerHTML = `<strong>Wk ${i}</strong><div class="week-desc">${weekData[i].type}</div>`;
+            div.onclick = () => {
+                // When advancing/changing weeks, auto-clear any completed workouts so the new week starts fresh
+                appData.program.days.forEach(d => {
+                    if (d.pendingReset) {
+                        clearDayActiveLogs(d.id);
+                    }
+                });
+                appData.program.currentWeek = i;
+                saveData();
+                updateWeekDisplay();
+                renderWeekSelector();
+                renderWorkout();
+                updateProgress();
+                closeModal('weekModal');
+            };
+            grid.appendChild(div);
+        }
+    }
+
+    // Rest Timer Logic
+    let timerInterval;
+    let timeRemaining = 0;
+    const timerDisplay = document.getElementById('timer-display');
+    const timerOverlay = document.getElementById('timer-overlay');
+
+    function startTimer(seconds) {
+        clearInterval(timerInterval);
+        timeRemaining = seconds;
+        timerOverlay.style.display = 'flex';
+        updateTimerDisplay();
+        timerInterval = setInterval(() => {
+            timeRemaining--;
+            if (timeRemaining <= 0) {
+                stopTimer();
+                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+            } else {
+                updateTimerDisplay();
+            }
+        }, 1000);
+    }
+
+    function updateTimerDisplay() {
+        const m = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+        const s = (timeRemaining % 60).toString().padStart(2, '0');
+        timerDisplay.innerText = `${m}:${s}`;
+    }
+
+    function stopTimer() {
+        clearInterval(timerInterval);
+        timerOverlay.style.display = 'none';
+    }
+
+    function adjustTimer(secs) {
+        timeRemaining += secs;
+        if (timeRemaining < 0) timeRemaining = 0;
+        updateTimerDisplay();
+    }
+
+    function exportData() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `hybrid_mountain_wk${appData.program.currentWeek}.json`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    function importData(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                appData = data;
+                saveData();
+                init();
+                alert('Workout history & program restored!');
+            } catch (err) {
+                alert('Error reading backup file.');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    init();
+</script>
+</body>
+</html>
